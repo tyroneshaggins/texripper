@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TexRipper — texture ripper &amp; seamless studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2315111f'/%3E%3Cpath d='M2 2h6v6H2z' fill='%23ff6fc4'/%3E%3Cpath d='M8 8h6v6H8z' fill='%236fe4ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <header id="titlebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">TEXRIPPER</span>
+      <span class="brand-sub">seamless texture studio</span>
+      <span class="brand-tag">WEB</span>
+    </div>
+    <div class="titlebar-actions">
+      <button class="btn" id="btnOpen" title="Open an image (Ctrl+O)">Open Image</button>
+      <button class="btn" id="btnPaste" title="Paste image from clipboard (Ctrl+V)">Paste</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn" id="btnSave" title="Save project file (Ctrl+S)">Save</button>
+      <button class="btn" id="btnLoad" title="Load project file">Load</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn icon" id="btnUndo" title="Undo (Ctrl+Z)">&#8630;</button>
+      <button class="btn icon" id="btnRedo" title="Redo (Ctrl+Shift+Z)">&#8631;</button>
+      <button class="btn icon" id="btnHelp" title="Help &amp; shortcuts (?)">?</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    <input type="file" id="projectInput" accept=".json,application/json" hidden>
+  </header>
+
+  <aside id="leftPanel" class="panel">
+    <section class="group">
+      <h2><i class="dot"></i>Source</h2>
+      <div class="btn-row">
+        <button class="btn" id="btnDemo" title="Load a generated demo image">Demo Image</button>
+        <button class="btn" id="btnRotate" title="Rotate the source image 90° clockwise">Rotate 90&deg;</button>
+      </div>
+      <div class="hint" id="sourceInfo">No image loaded. Drop a file anywhere or paste from the clipboard.</div>
+    </section>
+
+    <section class="group grow rippers-group">
+      <h2><i class="dot pink"></i>Rippers <span class="count" id="ripperCount">0</span></h2>
+      <button class="btn wide accent" id="btnAddRipper">+ New Ripper</button>
+      <ul id="ripperList" class="ripper-list"></ul>
+    </section>
+
+    <section class="group">
+      <h2><i class="dot cyan"></i>Ripper Output</h2>
+      <fieldset id="ripperSettings" class="settings" disabled>
+        <div class="row">
+          <label for="ripName">Name</label>
+          <input id="ripName" type="text" maxlength="28" spellcheck="false">
+        </div>
+        <div class="row">
+          <label for="outW">Width</label>
+          <input id="outW" type="number" min="8" max="2048" step="1">
+          <label for="outH" class="tight">Height</label>
+          <input id="outH" type="number" min="8" max="2048" step="1">
+        </div>
+        <label class="check"><input type="checkbox" id="lockAspect"> Link aspect ratio</label>
+        <div class="btn-row presets">
+          <button class="btn tiny" data-size="64">64</button>
+          <button class="btn tiny" data-size="128">128</button>
+          <button class="btn tiny" data-size="256">256</button>
+          <button class="btn tiny" data-size="512">512</button>
+          <button class="btn tiny" data-size="1024">1024</button>
+        </div>
+        <button class="btn wide" id="btnMatchPoly" title="Size the output to the ripper's bounding box">Match Polygon Size</button>
+      </fieldset>
+    </section>
+  </aside>
+
+  <main id="viewport">
+    <canvas id="viewCanvas"></canvas>
+    <div id="hudInfo" class="hud"></div>
+    <div class="viewport-tools">
+      <button class="btn tiny" id="btnZoomOut" title="Zoom out">&#8722;</button>
+      <button class="btn tiny" id="btnZoomFit" title="Fit image (F)">Fit</button>
+      <button class="btn tiny" id="btnZoom100" title="Zoom 100%">1:1</button>
+      <button class="btn tiny" id="btnZoomIn" title="Zoom in">+</button>
+    </div>
+    <div id="dropzone" class="dropzone"><span>DROP IMAGE OR PROJECT</span></div>
+  </main>
+
+  <aside id="rightPanel" class="panel">
+    <section class="group">
+      <h2><i class="dot yellow"></i>Rip Preview <span class="tag" id="previewSize"></span></h2>
+      <div class="canvas-box checker" id="previewBox">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+    </section>
+
+    <section class="group grow" id="smGroup">
+      <h2><i class="dot pink"></i>Seamless</h2>
+      <label class="check"><input type="checkbox" id="smEnabled"> Make seamless + adjust</label>
+      <div class="row">
+        <label for="smMethod">Method</label>
+        <select id="smMethod">
+          <option value="mirror">Mirror blend</option>
+          <option value="offset">Offset feather</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+      <div class="row slider-row">
+        <label for="smBand">Seam blend</label>
+        <output id="smBandOut">12%</output>
+        <input id="smBand" type="range" min="1" max="50" value="12">
+      </div>
+      <div class="row slider-row">
+        <label for="smContrast">Contrast</label>
+        <output id="smContrastOut">0</output>
+        <input id="smContrast" type="range" min="-100" max="100" value="0">
+      </div>
+      <div class="row slider-row">
+        <label for="smBrightness">Brightness</label>
+        <output id="smBrightnessOut">0</output>
+        <input id="smBrightness" type="range" min="-100" max="100" value="0">
+      </div>
+      <div class="row slider-row">
+        <label for="smSharpen">Sharpen</label>
+        <output id="smSharpenOut">0</output>
+        <input id="smSharpen" type="range" min="0" max="100" value="0">
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btnSmReset" title="Reset seam settings">Reset</button>
+        <button class="btn accent" id="btnExportSelected" title="Export this texture (Ctrl+E)">Export PNG</button>
+      </div>
+    </section>
+  </aside>
+
+  <section id="atlasPanel" class="panel">
+    <div class="atlas-head">
+      <h2><i class="dot cyan"></i>Texture Atlas <span class="tag" id="atlasInfo">empty</span></h2>
+      <div class="atlas-controls">
+        <label class="inline-label" for="atlasSizeSel">Size</label>
+        <select id="atlasSizeSel">
+          <option value="auto">Auto</option>
+          <option value="512">512</option>
+          <option value="1024" selected>1024</option>
+          <option value="2048">2048</option>
+          <option value="4096">4096</option>
+        </select>
+        <button class="btn tiny" id="btnAutoPack">Auto Layout</button>
+        <button class="btn tiny" id="btnExportAtlas">Export Atlas</button>
+        <button class="btn tiny" id="btnExportAll">Export All</button>
+        <button class="btn tiny" id="btnCollapseAtlas" title="Collapse atlas panel">&#9660;</button>
+      </div>
+    </div>
+    <div class="atlas-body">
+      <div id="atlasWrap" class="checker">
+        <canvas id="atlasCanvas"></canvas>
+        <div class="atlas-hint">drag textures to arrange &middot; wheel = zoom &middot; space+drag = pan &middot; double-click = reset</div>
+      </div>
+      <aside id="tilingPanel">
+        <h2><i class="dot green"></i>Tiling Preview <span class="tag">wrap</span></h2>
+        <div class="canvas-box checker" id="tilingBox">
+          <canvas id="tilingCanvas"></canvas>
+        </div>
+        <div class="hint tiny-hint">wheel = zoom &middot; drag = pan &middot; double-click = reset</div>
+      </aside>
+    </div>
+  </section>
+
+  <footer id="statusbar">
+    <span id="status">Ready.</span>
+    <span id="hotkeys">LMB drag points &middot; Shift+drag axis lock &middot; Alt+click edge = add point &middot; RMB point = remove &middot; Space+drag pan &middot; Wheel zoom</span>
+  </footer>
+</div>
+
+<div class="modal" id="helpModal" hidden>
+  <div class="modal-card">
+    <header>
+      <h3>How to use TexRipper</h3>
+      <button class="btn icon" id="btnCloseHelp" title="Close">&#10005;</button>
+    </header>
+    <div class="modal-body">
+      <p class="lead">Rip textures out of any photo, straighten perspective, make them tile, and pack them into an atlas.</p>
+      <ol class="steps">
+        <li><b>Load an image</b> — Open, drag &amp; drop, or paste. Hit <b>Demo Image</b> to try it instantly.</li>
+        <li><b>Shape a ripper</b> — drag the 4 corner handles around a flat surface. Alt+click an edge midpoint to add a point.</li>
+        <li><b>Pick a resolution</b> — the rip is perspective-corrected into the output size. Use <b>Match Polygon Size</b> for 1:1 sampling.</li>
+        <li><b>Make it seamless</b> — tweak the method, seam blend, contrast, brightness and sharpen. The tiling preview is live.</li>
+        <li><b>Arrange the atlas</b> — drag textures inside the atlas, then Export Atlas as a PNG.</li>
+      </ol>
+      <div class="keys">
+        <div><kbd>Ctrl</kbd>+<kbd>O</kbd><span>open image</span></div>
+        <div><kbd>Ctrl</kbd>+<kbd>V</kbd><span>paste image</span></div>
+        <div><kbd>N</kbd><span>new ripper</span></div>
+        <div><kbd>F</kbd><span>fit view</span></div>
+        <div><kbd>Shift</kbd>+drag<span>axis lock</span></div>
+        <div><kbd>Ctrl</kbd>+drag<span>snap to pixel</span></div>
+        <div><kbd>Alt</kbd>+click<span>insert point</span></div>
+        <div>right&#8209;click<span>remove point</span></div>
+        <div><kbd>Ctrl</kbd>+<kbd>D</kbd><span>duplicate ripper</span></div>
+        <div><kbd>Del</kbd><span>delete ripper</span></div>
+        <div><kbd>Ctrl</kbd>+<kbd>Z</kbd><span>undo</span></div>
+        <div><kbd>Ctrl</kbd>+<kbd>E</kbd><span>export texture</span></div>
+      </div>
+      <p class="fine">Everything runs locally in your browser. No uploads, dependencies, or build step. An independent web remake inspired by Puck's Texture Ripper.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/geometry.js"></script>
+<script src="js/seamless.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
