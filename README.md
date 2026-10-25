@@ -4,6 +4,8 @@
 
 **Rip it. Straighten it. Make it tile. Pack it.**
 
+LIVE DEMO: https://tyroneshaggins.github.io/texripper/
+
 A retro-styled browser tool that pulls perspective-corrected textures out of any photo,
 makes them seamlessly tileable, and packs the results into a texture atlas.
 
